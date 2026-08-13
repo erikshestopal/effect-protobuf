@@ -1,0 +1,10 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "bootstrap": {
+      "dependsOn": ["build", "@bufbuild/protoc-gen-es#build"],
+      "outputLogs": "new-only"
+    }
+  }
+}

@@ -1,0 +1,2 @@
+# Keep failures concrete and reviewable. This list intentionally starts empty,
+# so the bootstrap suite remains red until payload codecs are implemented.

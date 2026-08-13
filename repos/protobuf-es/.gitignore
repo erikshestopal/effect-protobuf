@@ -1,0 +1,12 @@
+.astro
+.tmp
+.turbo
+.tshy
+.tshy-build
+dist
+node_modules
+/packages/protobuf-test/*.0x
+/packages/protobuf-test/*-v8.log
+/packages/protobuf-example/users.binpb
+/deno/example/users.binpb
+/bun/example/users.binpb

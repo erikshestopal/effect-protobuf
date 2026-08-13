@@ -1,0 +1,3 @@
+# The text format is fully implemented and passes every conformance test, but it
+# is only supported in environments with BigInt. When bigint is unavailable
+# (BUF_BIGINT_DISABLE=1), conformance.ts skips the text format tests.

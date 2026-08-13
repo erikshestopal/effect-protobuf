@@ -1,0 +1,324 @@
+// Copyright 2021-2026 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import { suite, test } from "node:test";
+import * as assert from "node:assert";
+import { fromBinary } from "@bufbuild/protobuf";
+import { BinaryReader, BinaryWriter, WireType } from "@bufbuild/protobuf/wire";
+import { UserSchema } from "../gen/ts/extra/example_pb.js";
+
+void suite("BinaryWriter", () => {
+  void test("example should work as expected", () => {
+    const bytes = new BinaryWriter()
+      // string first_name = 1
+      .tag(1, WireType.LengthDelimited)
+      .string("Homer")
+      // bool active = 3
+      .tag(3, WireType.Varint)
+      .bool(true)
+      .finish();
+    const user = fromBinary(UserSchema, bytes);
+    assert.strictEqual(user.firstName, "Homer");
+    assert.strictEqual(user.active, true);
+  });
+  void suite("float32()", () => {
+    for (const val of [
+      1024,
+      3.14,
+      -3.14,
+      -1024,
+      Number.POSITIVE_INFINITY,
+      Number.NEGATIVE_INFINITY,
+      Number.NaN,
+    ]) {
+      void test(`should encode ${val}`, () => {
+        const bytes = new BinaryWriter().float(val).finish();
+        assert.ok(bytes.length >= 0);
+        // @ts-expect-error test string
+        const bytesStr = new BinaryWriter().float(val.toString()).finish();
+        assert.ok(bytesStr.length > 0);
+        assert.deepStrictEqual(bytesStr, bytes);
+      });
+    }
+    for (const { val, err } of [
+      { val: null, err: "invalid float32: object" },
+      { val: new Date(), err: "invalid float32: object" },
+      { val: undefined, err: "invalid float32: undefined" },
+      { val: true, err: "invalid float32: boolean" },
+    ]) {
+      void test(`should error for value out of range ${val}`, () => {
+        // @ts-expect-error test wrong type
+        assert.throws(() => new BinaryWriter().float(val), {
+          message: err,
+        });
+      });
+    }
+    for (const val of [Number.MAX_VALUE, -Number.MAX_VALUE]) {
+      void test(`should error for value out of range ${val}`, () => {
+        assert.throws(() => new BinaryWriter().float(val), {
+          message: /^invalid float32: .*/,
+        });
+        // @ts-expect-error test string
+        assert.throws(() => new BinaryWriter().float(val.toString()), {
+          message: /^invalid float32: .*/,
+        });
+      });
+    }
+  });
+  // sfixed32, sint32, and int32 are signed 32-bit integers, just with different encoding
+  for (const type of ["sfixed32", "sint32", "int32"] as const) {
+    void suite(`${type}()`, () => {
+      for (const val of [-0x80000000, 1024, 0x7fffffff]) {
+        void test(`should encode ${val}`, () => {
+          const bytes = new BinaryWriter()[type](val).finish();
+          assert.ok(bytes.length > 0);
+          // @ts-expect-error test string
+          const bytesStr = new BinaryWriter()[type](val.toString()).finish();
+          assert.ok(bytesStr.length > 0);
+          assert.deepStrictEqual(bytesStr, bytes);
+        });
+      }
+      for (const { val, err } of [
+        { val: null, err: "invalid int32: object" },
+        { val: new Date(), err: "invalid int32: object" },
+        { val: undefined, err: "invalid int32: undefined" },
+        { val: true, err: "invalid int32: boolean" },
+      ]) {
+        void test(`should error for wrong type ${val}`, () => {
+          // @ts-expect-error TS2345
+          assert.throws(() => new BinaryWriter()[type](val), { message: err });
+        });
+      }
+      for (const val of [0x7fffffff + 1, -0x80000000 - 1, 3.14]) {
+        void test(`should error for value out of range ${val}`, () => {
+          assert.throws(() => new BinaryWriter()[type](val), {
+            message: /^invalid int32: .*/,
+          });
+          // @ts-expect-error test string
+          assert.throws(() => new BinaryWriter()[type](val.toString()), {
+            message: /^invalid int32: .*/,
+          });
+        });
+      }
+    });
+  }
+  // fixed32 and uint32 are unsigned 32-bit integers, just with different encoding
+  for (const type of ["fixed32", "uint32"] as const) {
+    void suite(`${type}()`, () => {
+      for (const val of [0, 1024, 0xffffffff]) {
+        void test(`should encode ${val}`, () => {
+          const bytes = new BinaryWriter()[type](val).finish();
+          assert.ok(bytes.length > 0);
+          // @ts-expect-error test string
+          const bytesStr = new BinaryWriter()[type](val.toString()).finish();
+          assert.ok(bytesStr.length > 0);
+          assert.deepStrictEqual(bytesStr, bytes);
+        });
+      }
+      for (const { val, err } of [
+        { val: null, err: `invalid uint32: object` },
+        { val: new Date(), err: `invalid uint32: object` },
+        { val: undefined, err: `invalid uint32: undefined` },
+        { val: true, err: `invalid uint32: boolean` },
+      ]) {
+        void test(`should error for wrong type ${val}`, () => {
+          // @ts-expect-error TS2345
+          assert.throws(() => new BinaryWriter()[type](val), {
+            message: err,
+          });
+        });
+      }
+      for (const val of [0xffffffff + 1, -1, 3.14]) {
+        void test(`should error for value out of range ${val}`, () => {
+          assert.throws(() => new BinaryWriter()[type](val), {
+            message: /^invalid uint32: .*/,
+          });
+          // @ts-expect-error test string
+          assert.throws(() => new BinaryWriter()[type](val.toString()), {
+            message: /^invalid uint32: .*/,
+          });
+        });
+      }
+    });
+  }
+  void test("should be completely reset after finish", () => {
+    const writer = new BinaryWriter();
+    // Make sure we have both a chunk and a buffer
+    writer.raw(new Uint8Array([1, 2, 3])).int32(1);
+    const bytes = writer.finish();
+    // Reuse the same writer to write the same data
+    writer.raw(new Uint8Array([1, 2, 3])).int32(1);
+    const bytes2 = writer.finish();
+    assert.deepStrictEqual(bytes2, bytes);
+  });
+});
+
+void suite("BinaryReader", () => {
+  void suite("skip", () => {
+    void test("should skip group", () => {
+      const reader = new BinaryReader(
+        new BinaryWriter()
+          .tag(1, WireType.StartGroup)
+          .tag(33, WireType.Varint)
+          .bool(true)
+          .tag(1, WireType.EndGroup)
+          .finish(),
+      );
+      const [fieldNo, wireType] = reader.tag();
+      assert.strictEqual(fieldNo, 1);
+      assert.strictEqual(wireType, WireType.StartGroup);
+      reader.skip(WireType.StartGroup, 1);
+      assert.strictEqual(reader.pos, reader.len);
+    });
+    void test("should skip nested group", () => {
+      const reader = new BinaryReader(
+        new BinaryWriter()
+          .tag(1, WireType.StartGroup)
+          .tag(1, WireType.StartGroup)
+          .tag(1, WireType.EndGroup)
+          .tag(1, WireType.EndGroup)
+          .finish(),
+      );
+      const [fieldNo, wireType] = reader.tag();
+      assert.strictEqual(fieldNo, 1);
+      assert.strictEqual(wireType, WireType.StartGroup);
+      reader.skip(WireType.StartGroup, 1);
+      assert.strictEqual(reader.pos, reader.len);
+    });
+    void test("should error on unexpected end group field number", () => {
+      const reader = new BinaryReader(
+        new BinaryWriter()
+          .tag(1, WireType.StartGroup)
+          .tag(2, WireType.EndGroup)
+          .finish(),
+      );
+      const [fieldNo, wireType] = reader.tag();
+      assert.strictEqual(fieldNo, 1);
+      assert.strictEqual(wireType, WireType.StartGroup);
+      assert.throws(
+        () => {
+          reader.skip(WireType.StartGroup, 1);
+        },
+        { message: /^invalid end group tag$/ },
+      );
+    });
+    void test("should return skipped group data", () => {
+      const reader = new BinaryReader(
+        new BinaryWriter()
+          .tag(1, WireType.StartGroup)
+          .tag(33, WireType.Varint)
+          .bool(true)
+          .tag(1, WireType.EndGroup)
+          .finish(),
+      );
+      reader.tag();
+      const skipped = reader.skip(WireType.StartGroup, 1);
+      const sr = new BinaryReader(skipped);
+      {
+        const [fieldNo, wireType] = sr.tag();
+        assert.strictEqual(fieldNo, 33);
+        assert.strictEqual(wireType, WireType.Varint);
+        const bool = sr.bool();
+        assert.strictEqual(bool, true);
+      }
+      {
+        const [fieldNo, wireType] = sr.tag();
+        assert.strictEqual(fieldNo, 1);
+        assert.strictEqual(wireType, WireType.EndGroup);
+        assert.strictEqual(sr.pos, sr.len);
+      }
+    });
+    void test("rejects deeply nested groups", () => {
+      // A run of StartGroup tags (0x0b = field 1, WireType.StartGroup) with no
+      // matching EndGroup tags. Without a recursion limit, skipping this
+      // overflows the call stack.
+      const startGroupTags = new Uint8Array(10000).fill(0x0b);
+      const reader = new BinaryReader(startGroupTags);
+      const [, wireType] = reader.tag();
+      assert.strictEqual(wireType, WireType.StartGroup);
+      assert.throws(
+        () => reader.skip(wireType),
+        /maximum recursion depth reached/,
+      );
+    });
+    void test("honors a custom recursionLimit when skipping groups", () => {
+      // `depth` nested groups, each closed by a matching EndGroup.
+      function nestedGroups(depth: number): Uint8Array {
+        const writer = new BinaryWriter();
+        for (let i = 0; i < depth; i++) {
+          writer.tag(1, WireType.StartGroup);
+        }
+        for (let i = 0; i < depth; i++) {
+          writer.tag(1, WireType.EndGroup);
+        }
+        return writer.finish();
+      }
+      function skipGroups(bytes: Uint8Array, recursionLimit: number): void {
+        const reader = new BinaryReader(bytes);
+        const [, wireType] = reader.tag();
+        reader.skip(wireType, 1, recursionLimit);
+      }
+      assert.doesNotThrow(() => skipGroups(nestedGroups(5), 10));
+      assert.throws(
+        () => skipGroups(nestedGroups(5), 3),
+        /maximum recursion depth reached/,
+      );
+    });
+  });
+  void suite("tag", () => {
+    // Tag byte for (fieldNo=1, wireType=Varint) with the varint continuation
+    // bit set, so additional bytes can be appended to build malformed tags.
+    const field1TagContinued = 0x08 | 0x80;
+    void test("should reject varint longer than 5 bytes", () => {
+      const reader = new BinaryReader(
+        new Uint8Array([
+          field1TagContinued,
+          0x80,
+          0x80,
+          0x80,
+          0x80,
+          0x80,
+          0x00,
+        ]),
+      );
+      assert.throws(() => reader.tag(), {
+        message: "illegal tag: varint overflows uint32",
+      });
+    });
+    void test("should reject 5-byte varint whose value overflows uint32", () => {
+      const reader = new BinaryReader(
+        new Uint8Array([field1TagContinued, 0x80, 0x80, 0x80, 0x40]),
+      );
+      assert.throws(() => reader.tag(), {
+        message: "illegal tag: varint overflows uint32",
+      });
+    });
+    void test("should reject field number 0", () => {
+      const reader = new BinaryReader(new Uint8Array([0x00]));
+      assert.throws(() => reader.tag(), {
+        message: /^illegal tag: field no 0/,
+      });
+    });
+    void test("should accept the maximum valid tag", () => {
+      // fieldNo = 2^29 - 1 (the protobuf max), wireType = Varint.
+      // tag = (0x1FFFFFFF << 3) = 0xFFFFFFF8.
+      const reader = new BinaryReader(
+        new Uint8Array([0xf8, 0xff, 0xff, 0xff, 0x0f]),
+      );
+      const [fieldNo, wireType] = reader.tag();
+      assert.strictEqual(fieldNo, 0x1fffffff);
+      assert.strictEqual(wireType, WireType.Varint);
+    });
+  });
+});

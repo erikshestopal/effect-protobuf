@@ -1,0 +1,5 @@
+version: v2
+plugins:
+  - local: ../src/protoc-gen-effect.ts
+    out: src/gen
+    opt: target=ts

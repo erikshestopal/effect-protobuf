@@ -1,0 +1,14 @@
+{
+  "include": ["src/**/*.ts"],
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2020",
+    "strict": true,
+    "resolveJsonModule": true,
+    // We use Node.js modules in tests
+    "types": ["node"]
+  }
+}

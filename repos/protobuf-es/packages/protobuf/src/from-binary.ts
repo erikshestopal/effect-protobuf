@@ -1,0 +1,346 @@
+// Copyright 2021-2026 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import { type DescField, type DescMessage, ScalarType } from "./descriptors.js";
+import type { MessageShape } from "./types.js";
+import type {
+  ReflectList,
+  ReflectMap,
+  ReflectMessage,
+} from "./reflect/index.js";
+import { scalarZeroValue } from "./reflect/scalar.js";
+import type { ScalarValue } from "./reflect/scalar.js";
+import { reflect } from "./reflect/reflect.js";
+import { BinaryReader, WireType } from "./wire/binary-encoding.js";
+import { varint32write } from "./wire/varint.js";
+
+/**
+ * Options for parsing binary data.
+ */
+export interface BinaryReadOptions {
+  /**
+   * Retain unknown fields during parsing? The default behavior is to retain
+   * unknown fields and include them in the serialized output.
+   *
+   * For more details see https://developers.google.com/protocol-buffers/docs/proto3#unknowns
+   */
+  readUnknownFields: boolean;
+
+  /**
+   * The maximum depth of nested messages to parse. If a message nests deeper
+   * than this limit, parsing fails with an error instead of exhausting the
+   * call stack. Defaults to 100.
+   */
+  recursionLimit: number;
+}
+
+interface BinaryReadContext extends BinaryReadOptions {
+  // Recursion depth, guarded by recursionLimit.
+  depth: number;
+}
+
+/**
+ * @private Only exported for getExtension()
+ */
+export function makeReadContext(
+  options?: Partial<BinaryReadOptions>,
+): BinaryReadContext {
+  return { readUnknownFields: true, recursionLimit: 100, ...options, depth: 0 };
+}
+
+/**
+ * Parse serialized binary data.
+ */
+export function fromBinary<Desc extends DescMessage>(
+  schema: Desc,
+  bytes: Uint8Array,
+  options?: Partial<BinaryReadOptions>,
+): MessageShape<Desc> {
+  const msg = reflect(schema, undefined, false);
+  readMessage(
+    msg,
+    new BinaryReader(bytes),
+    makeReadContext(options),
+    false,
+    bytes.byteLength,
+  );
+  return msg.message as MessageShape<Desc>;
+}
+
+/**
+ * Parse from binary data, merging fields.
+ *
+ * Repeated fields are appended. Map entries are added, overwriting
+ * existing keys.
+ *
+ * If a message field is already present, it will be merged with the
+ * new data.
+ */
+export function mergeFromBinary<Desc extends DescMessage>(
+  schema: Desc,
+  target: MessageShape<Desc>,
+  bytes: Uint8Array,
+  options?: Partial<BinaryReadOptions>,
+): MessageShape<Desc> {
+  readMessage(
+    reflect(schema, target, false),
+    new BinaryReader(bytes),
+    makeReadContext(options),
+    false,
+    bytes.byteLength,
+  );
+  return target;
+}
+
+/**
+ * If `delimited` is false, read the length given in `lengthOrDelimitedFieldNo`.
+ *
+ * If `delimited` is true, read until an EndGroup tag. `lengthOrDelimitedFieldNo`
+ * is the expected field number.
+ *
+ * @private
+ */
+function readMessage(
+  message: ReflectMessage,
+  reader: BinaryReader,
+  ctx: BinaryReadContext,
+  delimited: boolean,
+  lengthOrDelimitedFieldNo: number,
+): void {
+  if (++ctx.depth > ctx.recursionLimit) {
+    throw new Error(
+      `cannot decode ${message.desc} from binary: maximum recursion depth of ${ctx.recursionLimit} reached`,
+    );
+  }
+  const end = delimited ? reader.len : reader.pos + lengthOrDelimitedFieldNo;
+  let fieldNo: number | undefined;
+  let wireType: WireType | undefined;
+  const unknownFields = message.getUnknown() ?? [];
+  while (reader.pos < end) {
+    [fieldNo, wireType] = reader.tag();
+    if (delimited && wireType == WireType.EndGroup) {
+      break;
+    }
+    const field = message.findNumber(fieldNo);
+    if (!field) {
+      // Use remaining recursion budget for skipping nested groups
+      const recursionLimit = ctx.recursionLimit - ctx.depth;
+      const data = reader.skip(wireType, fieldNo, recursionLimit);
+      if (ctx.readUnknownFields) {
+        unknownFields.push({ no: fieldNo, wireType, data });
+      }
+      continue;
+    }
+    readField(message, reader, field, wireType, ctx);
+  }
+  if (delimited) {
+    if (wireType != WireType.EndGroup || fieldNo !== lengthOrDelimitedFieldNo) {
+      throw new Error("invalid end group tag");
+    }
+  }
+  if (unknownFields.length > 0) {
+    message.setUnknown(unknownFields);
+  }
+  ctx.depth--;
+}
+
+/**
+ * @private Only exported for getExtension()
+ */
+export function readField(
+  message: ReflectMessage,
+  reader: BinaryReader,
+  field: DescField,
+  wireType: WireType,
+  ctx: BinaryReadContext,
+) {
+  switch (field.fieldKind) {
+    case "scalar":
+      message.set(
+        field,
+        readScalar(reader, field.scalar, field.utf8Validation),
+      );
+      break;
+    case "enum":
+      const val = readScalar(reader, ScalarType.INT32);
+      if (field.enum.open) {
+        message.set(field, val);
+      } else {
+        const ok = field.enum.values.some((v) => v.number === val);
+        if (ok) {
+          message.set(field, val);
+        } else if (ctx.readUnknownFields) {
+          const bytes: number[] = [];
+          varint32write(val as number, bytes);
+          const unknownFields = message.getUnknown() ?? [];
+          unknownFields.push({
+            no: field.number,
+            wireType,
+            data: new Uint8Array(bytes),
+          });
+          message.setUnknown(unknownFields);
+        }
+      }
+      break;
+    case "message":
+      message.set(
+        field,
+        readMessageField(reader, ctx, field, message.get(field)),
+      );
+      break;
+    case "list":
+      readListField(reader, wireType, message.get(field), ctx);
+      break;
+    case "map":
+      readMapEntry(reader, message.get(field), ctx);
+      break;
+  }
+}
+
+// Read a map field, expecting key field = 1, value field = 2
+function readMapEntry(
+  reader: BinaryReader,
+  map: ReflectMap,
+  ctx: BinaryReadContext,
+): void {
+  const field = map.field();
+  let key: ScalarValue | undefined;
+  let val: ScalarValue | ReflectMessage | undefined;
+  // Read the length of the map entry, which is a varint.
+  const len = reader.uint32();
+  // WARNING: Calculate end AFTER advancing reader.pos (above), so that
+  //          reader.pos is at the start of the map entry.
+  const end = reader.pos + len;
+  while (reader.pos < end) {
+    const [fieldNo] = reader.tag();
+    switch (fieldNo) {
+      case 1:
+        key = readScalar(reader, field.mapKey, field.utf8Validation);
+        break;
+      case 2:
+        switch (field.mapKind) {
+          case "scalar":
+            val = readScalar(reader, field.scalar, field.utf8Validation);
+            break;
+          case "enum":
+            val = reader.int32();
+            break;
+          case "message":
+            val = readMessageField(reader, ctx, field);
+            break;
+        }
+        break;
+    }
+  }
+  if (key === undefined) {
+    key = scalarZeroValue(field.mapKey, false);
+  }
+  if (val === undefined) {
+    switch (field.mapKind) {
+      case "scalar":
+        val = scalarZeroValue(field.scalar, false);
+        break;
+      case "enum":
+        val = field.enum.values[0].number;
+        break;
+      case "message":
+        val = reflect(field.message, undefined, false);
+        break;
+    }
+  }
+  map.set(key, val);
+}
+
+function readListField(
+  reader: BinaryReader,
+  wireType: WireType,
+  list: ReflectList,
+  ctx: BinaryReadContext,
+) {
+  const field = list.field();
+  if (field.listKind === "message") {
+    list.add(readMessageField(reader, ctx, field));
+    return;
+  }
+  const scalarType = field.scalar ?? ScalarType.INT32;
+  const packed =
+    wireType == WireType.LengthDelimited &&
+    scalarType != ScalarType.STRING &&
+    scalarType != ScalarType.BYTES;
+  if (!packed) {
+    list.add(readScalar(reader, scalarType, field.utf8Validation));
+    return;
+  }
+  const e = reader.uint32() + reader.pos;
+  while (reader.pos < e) {
+    list.add(readScalar(reader, scalarType, field.utf8Validation));
+  }
+}
+
+function readMessageField(
+  reader: BinaryReader,
+  ctx: BinaryReadContext,
+  field: DescField & { message: DescMessage },
+  mergeMessage?: ReflectMessage,
+): ReflectMessage {
+  const delimited = field.delimitedEncoding;
+  const message = mergeMessage ?? reflect(field.message, undefined, false);
+  readMessage(
+    message,
+    reader,
+    ctx,
+    delimited,
+    delimited ? field.number : reader.uint32(),
+  );
+  return message;
+}
+
+function readScalar(
+  reader: BinaryReader,
+  type: ScalarType,
+  validateUtf8 = false,
+): ScalarValue {
+  switch (type) {
+    case ScalarType.STRING:
+      return reader.string(validateUtf8);
+    case ScalarType.BOOL:
+      return reader.bool();
+    case ScalarType.DOUBLE:
+      return reader.double();
+    case ScalarType.FLOAT:
+      return reader.float();
+    case ScalarType.INT32:
+      return reader.int32();
+    case ScalarType.INT64:
+      return reader.int64();
+    case ScalarType.UINT64:
+      return reader.uint64();
+    case ScalarType.FIXED64:
+      return reader.fixed64();
+    case ScalarType.BYTES:
+      return reader.bytes();
+    case ScalarType.FIXED32:
+      return reader.fixed32();
+    case ScalarType.SFIXED32:
+      return reader.sfixed32();
+    case ScalarType.SFIXED64:
+      return reader.sfixed64();
+    case ScalarType.SINT64:
+      return reader.sint64();
+    case ScalarType.UINT32:
+      return reader.uint32();
+    case ScalarType.SINT32:
+      return reader.sint32();
+  }
+}

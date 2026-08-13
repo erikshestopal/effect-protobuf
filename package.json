@@ -1,0 +1,143 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Effect-TS/tsgo/refs/heads/main/schema.json",
+  "name": "effect-protobuf",
+  "version": "0.0.0",
+  "description": "Effect Schema integration for Protocol Buffers, backed by protobuf-es.",
+  "keywords": [
+    "effect",
+    "effect-schema",
+    "protobuf",
+    "protocol-buffers",
+    "typescript"
+  ],
+  "homepage": "https://github.com/erikshestopal/effect-protobuf#readme",
+  "bugs": {
+    "url": "https://github.com/erikshestopal/effect-protobuf/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/erikshestopal/effect-protobuf.git"
+  },
+  "bin": {
+    "protoc-gen-effect": "./dist/protoc-gen-effect.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "sideEffects": [],
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./Protobuf": {
+      "types": "./dist/Protobuf.d.ts",
+      "import": "./dist/Protobuf.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "benchmark": "tsx benchmarks/codec.ts",
+    "build": "vp exec vp pack",
+    "build:watch": "vp exec vp pack --watch",
+    "changeset": "changeset",
+    "check": "vp run --log labeled check:all",
+    "conformance": "test/conformance/run-conformance.sh",
+    "conformance:generate": "test/conformance/generate.sh",
+    "conformance:test": "test/conformance/run-conformance.sh --test",
+    "coverage": "vp exec vitest run --coverage --coverage.provider istanbul --coverage.reporter=text --coverage.include=src/** --coverage.exclude=src/protoc-gen-effect.ts --coverage.thresholds.100",
+    "example": "tsx examples/src/main.ts",
+    "example:generate": "examples/generate.sh",
+    "generate:test": "test/generator/generate.sh",
+    "prepack": "vp exec vp pack",
+    "prepare": "vp config && effect-tsgo patch",
+    "release": "vp run release:check && changeset publish",
+    "release:check": "vp run check && vp run coverage && vp run conformance && vp run build && publint && attw --pack . && npm pack --dry-run --ignore-scripts",
+    "typecheck": "tsgo --noEmit",
+    "version": "changeset version"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "2.14.0",
+    "@bufbuild/protoc-gen-es": "2.14.0",
+    "@bufbuild/protoplugin": "2.14.0",
+    "effect": "4.0.0-rc.108"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
+    "@ast-grep/cli": "0.45.1",
+    "@changesets/changelog-github": "^1.0.0",
+    "@changesets/cli": "^3.0.0",
+    "@effect/platform-node": "4.0.0-rc.108",
+    "@effect/tsgo": "0.36.4",
+    "@effect/vitest": "4.0.0-rc.108",
+    "@typescript/native-preview": "7.0.0-dev.20260707.2",
+    "@vitest/coverage-istanbul": "4.1.10",
+    "expect-type": "1.4.0",
+    "mitata": "1.0.34",
+    "protobuf-conformance": "35.1.0",
+    "publint": "^0.3.23",
+    "tsx": "^4.20.5",
+    "typescript": "7.0.2",
+    "vite": "npm:@voidzero-dev/vite-plus-core@0.2.9",
+    "vite-plus": "0.2.9",
+    "vitest": "4.1.10"
+  },
+  "peerDependencies": {
+    "effect": ">=4.0.0-rc.108"
+  },
+  "overrides": {
+    "vite": "npm:@voidzero-dev/vite-plus-core@0.2.9"
+  },
+  "packageManager": "bun@1.3.14",
+  "compilerOptions": {
+    "plugins": [
+      {
+        "name": "@effect/language-service",
+        "overrides": [
+          {
+            "include": [
+              "test/**/*",
+              "./test/**/*"
+            ],
+            "options": {
+              "diagnosticSeverity": {
+                "asyncFunction": "off"
+              }
+            }
+          }
+        ],
+        "diagnosticSeverity": {
+          "asyncFunction": "warning",
+          "cryptoRandomUUID": "warning",
+          "cryptoRandomUUIDInEffect": "warning",
+          "extendsNativeError": "warning",
+          "globalConsole": "warning",
+          "globalConsoleInEffect": "warning",
+          "globalDate": "warning",
+          "globalDateInEffect": "warning",
+          "globalFetch": "warning",
+          "globalFetchInEffect": "warning",
+          "globalRandom": "warning",
+          "globalRandomInEffect": "warning",
+          "globalTimers": "warning",
+          "globalTimersInEffect": "warning",
+          "instanceOfSchema": "warning",
+          "newPromise": "warning",
+          "nodeBuiltinImport": "warning",
+          "preferSchemaOverJson": "warning",
+          "processEnv": "warning",
+          "processEnvInEffect": "warning",
+          "unsafeEffectTypeAssertion": "warning"
+        }
+      }
+    ]
+  },
+  "trustedDependencies": [
+    "@ast-grep/cli"
+  ]
+}

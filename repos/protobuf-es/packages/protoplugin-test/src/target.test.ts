@@ -1,0 +1,246 @@
+// Copyright 2021-2026 Buf Technologies, Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import { suite, test, beforeEach, mock, type Mock } from "node:test";
+import * as assert from "node:assert";
+import { createTestPluginAndRun } from "./helpers.js";
+import type {
+  createEcmaScriptPlugin,
+  FileInfo,
+  Schema,
+} from "@bufbuild/protoplugin";
+import type { CodeGeneratorResponse } from "@bufbuild/protobuf/wkt";
+
+void suite("target", () => {
+  type PluginInit = Parameters<
+    typeof createEcmaScriptPlugin<Record<string, never>>
+  >[0];
+  let generateTs: Mock<PluginInit["generateTs"]>;
+  let generateJs: Mock<Exclude<PluginInit["generateJs"], undefined>>;
+  let generateDts: Mock<Exclude<PluginInit["generateDts"], undefined>>;
+  let transpile: Mock<Exclude<PluginInit["transpile"], undefined>>;
+
+  beforeEach(() => {
+    generateTs = mock.fn((schema: Schema) =>
+      schema.generateFile("test.ts").print(`const foo = "ts";`),
+    );
+    generateJs = mock.fn((schema: Schema) =>
+      schema.generateFile("test.js").print(`const foo = "js";`),
+    );
+    generateDts = mock.fn((schema: Schema) =>
+      schema.generateFile("test.d.ts").print(`declare const foo = "dts";`),
+    );
+    transpile = mock.fn(
+      (
+        files: FileInfo[],
+        transpileJs: boolean,
+        transpileDts: boolean,
+        jsImportStyle: "module" | "legacy_commonjs",
+      ) => {
+        const out: FileInfo[] = [];
+        for (const f of files) {
+          assert.ok(f.name.endsWith(".ts"));
+          assert.ok(!f.name.endsWith(".d.ts"));
+          if (transpileJs) {
+            out.push({
+              name: "test.js",
+              preamble: f.preamble,
+              content: `const foo = "js transpiled from ts"; // ${jsImportStyle}`,
+            });
+          }
+          if (transpileDts) {
+            out.push({
+              name: "test.d.ts",
+              preamble: f.preamble,
+              content: `declare const foo = "dts transpiled from ts";`,
+            });
+          }
+        }
+        return out;
+      },
+    );
+  });
+
+  void suite("unset", () => {
+    void test("should generate .js and .d.ts files", async () => {
+      const res = await createTestPluginAndRun({
+        proto: `syntax="proto3";`,
+        parameter: "",
+        generateTs,
+        generateJs,
+        generateDts,
+        transpile,
+      });
+      const gotFiles = res.file.map((f) => f.name).sort();
+      assert.deepStrictEqual(gotFiles, ["test.js", "test.d.ts"].sort());
+    });
+    void test("should call generateJs and generateDts", async () => {
+      await createTestPluginAndRun({
+        proto: `syntax="proto3";`,
+        parameter: "",
+        generateTs,
+        generateJs,
+        generateDts,
+        transpile,
+      });
+      assert.strictEqual(generateTs.mock.callCount(), 0);
+      assert.strictEqual(generateJs.mock.callCount(), 1);
+      assert.strictEqual(generateDts.mock.callCount(), 1);
+      assert.strictEqual(transpile.mock.callCount(), 0);
+    });
+  });
+
+  const targetCases = [
+    "js",
+    "ts",
+    "dts",
+    "js+ts+dts",
+    "js+ts",
+    "js+dts",
+    "ts+dts",
+  ];
+  for (const targetsJoined of targetCases) {
+    void suite(`targets ${targetsJoined}`, () => {
+      void test("should generate expected files", async () => {
+        const res = await createTestPluginAndRun({
+          proto: `syntax="proto3";`,
+          parameter: `target=${targetsJoined}`,
+          generateTs,
+          generateJs,
+          generateDts,
+          transpile,
+        });
+        const gotFiles = res.file.map((f) => f.name).sort();
+        const wantFiles = targetsJoined
+          .split("+")
+          .map((t) => (t == "dts" ? "test.d.ts" : `test.${t}`))
+          .sort();
+        assert.deepStrictEqual(gotFiles, wantFiles);
+      });
+      void test("should call expected generator functions", async () => {
+        await createTestPluginAndRun({
+          proto: `syntax="proto3";`,
+          parameter: `target=${targetsJoined}`,
+          generateTs,
+          generateJs,
+          generateDts,
+          transpile,
+        });
+        const targets = targetsJoined.split("+");
+        assert.strictEqual(
+          generateTs.mock.callCount(),
+          targets.includes("ts") ? 1 : 0,
+        );
+        assert.strictEqual(
+          generateJs.mock.callCount(),
+          targets.includes("js") ? 1 : 0,
+        );
+        assert.strictEqual(
+          generateDts.mock.callCount(),
+          targets.includes("dts") ? 1 : 0,
+        );
+        assert.strictEqual(transpile.mock.callCount(), 0);
+      });
+    });
+  }
+
+  const transpileCases = [
+    {
+      name: "target js+dts but only generateTs defined",
+      parameter: "target=js+dts",
+      definedGenerators: ["ts"],
+      calledGenerators: ["ts"],
+      transpileTo: ["js", "dts"],
+      expectedFiles: ["test.d.ts", "test.js"],
+    },
+    {
+      name: "target js but only generateTs defined",
+      parameter: "target=js",
+      definedGenerators: ["ts"],
+      calledGenerators: ["ts"],
+      transpileTo: ["js"],
+      expectedFiles: ["test.js"],
+    },
+    {
+      name: "target dts but only generateTs defined",
+      parameter: "target=dts",
+      definedGenerators: ["ts"],
+      calledGenerators: ["ts"],
+      transpileTo: ["dts"],
+      expectedFiles: ["test.d.ts"],
+    },
+    {
+      name: "target js+dts but only generateTs and generateJs defined",
+      parameter: "target=js+dts",
+      definedGenerators: ["ts", "js"],
+      calledGenerators: ["ts", "js"],
+      transpileTo: ["dts"],
+      expectedFiles: ["test.d.ts", "test.js"],
+    },
+    {
+      name: "target js+dts but only generateTs and generateDts defined",
+      parameter: "target=js+dts",
+      definedGenerators: ["ts", "dts"],
+      calledGenerators: ["ts", "dts"],
+      transpileTo: ["js"],
+      expectedFiles: ["test.d.ts", "test.js"],
+    },
+  ];
+  for (const transpileCase of transpileCases) {
+    void suite(`${transpileCase.name}`, () => {
+      let res: CodeGeneratorResponse;
+      beforeEach(
+        async () =>
+          // biome-ignore lint/suspicious/noAssignInExpressions: no
+          (res = await createTestPluginAndRun({
+            proto: `syntax="proto3";`,
+            parameter: transpileCase.parameter,
+            generateTs,
+            generateJs: transpileCase.definedGenerators.includes("js") ? generateJs : undefined, // biome-ignore format: want this to read well
+            generateDts: transpileCase.definedGenerators.includes("dts") ? generateDts : undefined, // biome-ignore format: want this to read well
+            transpile,
+          })),
+      );
+      void test("should call expected generator functions", () => {
+        assert.strictEqual(
+          generateTs.mock.callCount(),
+          transpileCase.calledGenerators.includes("ts") ? 1 : 0,
+        );
+        assert.strictEqual(generateJs.mock.callCount(), transpileCase.calledGenerators.includes("js") ? 1 : 0); // biome-ignore format: want this to read well
+        assert.strictEqual(generateDts.mock.callCount(), transpileCase.calledGenerators.includes("dts") ? 1 : 0); // biome-ignore format: want this to read well
+      });
+
+      void test("should call transpile function", () => {
+        assert.strictEqual(transpile.mock.callCount(), 1);
+        assert.deepStrictEqual(transpile.mock.calls[0].arguments, [
+          [
+            {
+              name: "test.ts",
+              content: `const foo = "ts";\n`,
+              preamble: undefined,
+            },
+          ],
+          transpileCase.transpileTo.includes("js"), // transpileJs
+          transpileCase.transpileTo.includes("dts"), // transpileDts
+          "module", // jsImportStyle
+        ]);
+      });
+
+      void test("should generate expected files", () => {
+        const gotFiles = res.file.map((f) => f.name).sort();
+        assert.deepStrictEqual(gotFiles, transpileCase.expectedFiles);
+      });
+    });
+  }
+});

@@ -1,0 +1,14 @@
+{
+  "name": "effect-protobuf-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "./generate.sh",
+    "start": "tsx src/main.ts"
+  },
+  "dependencies": {
+    "effect": "4.0.0-rc.108",
+    "effect-protobuf": "..",
+    "tsx": "^4.20.5"
+  }
+}

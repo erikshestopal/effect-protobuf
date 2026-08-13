@@ -1,0 +1,14 @@
+edition = "2023";
+package generator.edition2023;
+
+enum State {
+  STATE_UNSPECIFIED = 0;
+  STATE_READY = 1;
+}
+
+message EditionMessage {
+  string name = 1;
+  int32 count = 2;
+  repeated int32 values = 3;
+  State state = 4;
+}

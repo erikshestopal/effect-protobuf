@@ -1,0 +1,53 @@
+name: Documentation
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "docs/**"
+      - "src/**"
+      - zensical.toml
+      - ".github/workflows/docs.yaml"
+  pull_request:
+    paths:
+      - "docs/**"
+      - zensical.toml
+      - ".github/workflows/docs.yaml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+
+      - uses: astral-sh/setup-uv@11f9893b081a58869d3b5fccaea48c9e9e46f990 # v8.3.2
+
+      - run: uv run --group docs --no-dev zensical build --clean --strict
+
+      - name: deploy preview
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          curl -sS --fail-with-body -X POST "https://api.vercel.com/v13/deployments?teamId=${{ secrets.VERCEL_ORG_ID }}&forceNew=1" \
+            -H "Authorization: Bearer ${{ secrets.VERCEL_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "$(cat <<EOF
+          {
+            "project": "${{ secrets.VERCEL_PROJECT_ID }}",
+            "name": "protobuf-py",
+            "gitSource": {
+              "type": "github",
+              "org": "${{ github.repository_owner }}",
+              "repo": "${{ github.event.repository.name }}",
+              "ref":  "${{ github.head_ref }}",
+              "sha": "${{ github.event.pull_request.head.sha }}",
+              "prId": ${{ github.event.pull_request.number }}
+            }
+          }
+          EOF
+          )"

@@ -1,0 +1,35 @@
+syntax = "proto3";
+package generator.test;
+
+import "google/protobuf/descriptor.proto";
+import "google/protobuf/wrappers.proto";
+import "imported.proto";
+
+enum State {
+  STATE_UNSPECIFIED = 0;
+  STATE_READY = 1;
+}
+
+message Node {
+  message Detail { string note = 1; }
+  int32 id = 1;
+  optional string label = 2;
+  State state = 3;
+  repeated string tags = 4;
+  map<string, int64> counters = 5;
+  oneof contact { string email = 6; int64 phone = 7; }
+  Detail detail = 8;
+  Node child = 9;
+  bool enabled = 10;
+  bytes payload = 11;
+  generator.imported.Detail imported_detail = 12;
+  generator.imported.Status imported_status = 13;
+  int64 signed_string = 14 [jstype = JS_STRING];
+  uint64 unsigned_string = 15 [jstype = JS_STRING];
+  map<string, google.protobuf.Int32Value> wrapper_counters = 16;
+}
+
+service NodeService {
+  rpc Get(Node) returns (generator.imported.Detail);
+  rpc Watch(Node) returns (stream Node);
+}

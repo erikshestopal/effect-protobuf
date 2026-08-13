@@ -1,0 +1,63 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalEnv": ["BUF_BIGINT_DISABLE"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build", "generate"],
+      "outputs": ["dist/**"],
+      "outputLogs": "new-only"
+    },
+    "generate": {
+      "dependsOn": ["^build"],
+      "outputs": ["src/gen/**"],
+      "outputLogs": "new-only"
+    },
+    "test": {
+      "dependsOn": ["build"],
+      "cache": false,
+      "outputLogs": "new-only"
+    },
+    "format": {
+      "outputLogs": "new-only"
+    },
+    "license-header": {
+      "dependsOn": ["generate"],
+      "outputLogs": "new-only"
+    },
+    "lint": {
+      "dependsOn": ["format", "^build", "generate"],
+      "cache": false,
+      "outputLogs": "new-only"
+    },
+    "attw": {
+      "dependsOn": ["build"],
+      "outputLogs": "new-only"
+    },
+    "//#format": {
+      "inputs": ["$TURBO_DEFAULT$", "!packages/**", "package-lock.json"],
+      "outputLogs": "new-only"
+    },
+    "//#license-header": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!packages/**",
+        "!bun/conformance/**",
+        "!deno/conformance/**"
+      ],
+      "outputLogs": "new-only"
+    },
+    "//#lint": {
+      "dependsOn": ["format"],
+      "cache": false,
+      "outputLogs": "new-only"
+    },
+    "@bufbuild/protobuf-conformance#lint": {
+      "dependsOn": ["format", "^build", "generate", "build"],
+      "outputLogs": "new-only"
+    },
+    "@bufbuild/protoc-gen-es#lint": {
+      "dependsOn": ["format", "^build", "generate", "build"],
+      "outputLogs": "new-only"
+    }
+  }
+}

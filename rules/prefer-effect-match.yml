@@ -1,0 +1,53 @@
+id: prefer-effect-match
+language: TypeScript
+severity: error
+message: Use Match from effect for multi-branch dispatch on a kind discriminant.
+files:
+  - src/**/*.ts
+rule:
+  all:
+    - kind: if_statement
+    - has:
+        field: condition
+        stopBy: end
+        pattern: $KIND === $FIRST_CASE
+    - not:
+        has:
+          field: condition
+          regex: "&&"
+    - not:
+        follows:
+          stopBy: neighbor
+          all:
+            - kind: if_statement
+            - has:
+                field: condition
+                stopBy: end
+                pattern: $KIND === $PREVIOUS_CASE
+    - precedes:
+        stopBy: neighbor
+        all:
+          - kind: if_statement
+          - has:
+              field: condition
+              stopBy: end
+              pattern: $KIND === $SECOND_CASE
+          - not:
+              has:
+                field: condition
+                regex: "&&"
+          - precedes:
+              stopBy: neighbor
+              all:
+                - kind: if_statement
+                - has:
+                    field: condition
+                    stopBy: end
+                    pattern: $KIND === $THIRD_CASE
+                - not:
+                    has:
+                      field: condition
+                      regex: "&&"
+constraints:
+  KIND:
+    regex: (^|\.)kind$

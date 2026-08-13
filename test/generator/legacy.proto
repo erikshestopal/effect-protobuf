@@ -1,0 +1,14 @@
+syntax = "proto2";
+package generator.legacy;
+
+enum State {
+  STATE_ZERO = 0;
+  STATE_ONE = 1;
+}
+
+message Legacy {
+  required int32 id = 1;
+  optional string name = 2;
+  optional State state = 3;
+  repeated int32 values = 4 [packed = false];
+}
