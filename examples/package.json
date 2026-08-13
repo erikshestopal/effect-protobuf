@@ -1,5 +1,5 @@
 {
-  "name": "effect-protobuf-example",
+  "name": "protobuf-effect-example",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,7 +8,7 @@
   },
   "dependencies": {
     "effect": "4.0.0-rc.108",
-    "effect-protobuf": "..",
+    "protobuf-effect": "..",
     "tsx": "^4.20.5"
   }
 }

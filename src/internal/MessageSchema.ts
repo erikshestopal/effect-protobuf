@@ -10,7 +10,7 @@ import { FeatureSet_FieldPresence, isWrapperDesc } from "@bufbuild/protobuf/wkt"
 import { Array as Arr, Effect, Predicate, Schema } from "effect";
 import type { Codec } from "effect/Schema";
 
-export const ProtobufSchemaAnnotation = "effect-protobuf/message-schema";
+export const ProtobufSchemaAnnotation = "protobuf-effect/message-schema";
 
 export interface MessageSchema<Desc extends DescMessage> extends Codec<MessageShape<Desc>> {
   make(input: MessageInitShape<Desc>, options?: Schema.MakeOptions): MessageShape<Desc>;

@@ -41,7 +41,7 @@ export type EditionMessage = Message<"generator.edition2023.EditionMessage"> & {
  * Describes the message generator.edition2023.EditionMessage.
  * Use `create(EditionMessageSchema)` to create a new message.
  */
-export const EditionMessageSchema: GenMessage<EditionMessage> = /*@__PURE__*/
+const EditionMessageSchema: GenMessage<EditionMessage> = /*@__PURE__*/
   messageDesc(file_edition_2023, 0);
 
 /**
@@ -66,5 +66,5 @@ export const StateSchema: GenEnum<State> = /*@__PURE__*/
   enumDesc(file_edition_2023, 0);
 
 
-import * as Protobuf from "effect-protobuf/Protobuf";
+import * as Protobuf from "protobuf-effect/Protobuf";
 export const EditionMessage = Protobuf.schema(EditionMessageSchema);

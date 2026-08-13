@@ -1,13 +1,13 @@
-# effect-protobuf
+# protobuf-effect
 
 Protocol Buffers for Effect. Generate native Effect Schemas from `.proto` files, construct validated messages with `Schema` conventions, and encode or decode binary, ProtoJSON, and protobuf text with typed Effect errors.
 
-The wire implementation is powered by protobuf-es. That keeps protobuf semantics, descriptors, extensions, and codec performance in one mature runtime while `effect-protobuf` owns the Effect-facing API. Normal application code works with generated schemas and ordinary TypeScript values; it does not call protobuf-es codecs directly.
+The wire implementation is powered by protobuf-es. That keeps protobuf semantics, descriptors, extensions, and codec performance in one mature runtime while `protobuf-effect` owns the Effect-facing API. Normal application code works with generated schemas and ordinary TypeScript values; it does not call protobuf-es codecs directly.
 
 ## Install
 
 ```sh
-npm install effect effect-protobuf
+npm install effect protobuf-effect
 ```
 
 The generator requires `protoc` or [Buf](https://buf.build/docs/installation/).
@@ -43,10 +43,10 @@ plugins:
     opt: target=ts
 ```
 
-The generated module exports protobuf descriptors and an Effect Schema for every message:
+The generated module exports an Effect Schema for every message:
 
 ```ts
-import { Person, PersonSchema } from "./gen/address_book_pb.ts";
+import { Person } from "./gen/address_book_pb.ts";
 
 const ada = Person.make({
   name: "Ada",
@@ -55,18 +55,9 @@ const ada = Person.make({
 });
 ```
 
-`Person` is a `Schema.Codec` with Effect's standard schema operations, including `make`, `makeOption`, `check`, and `annotate`. `PersonSchema` is the lower-level protobuf descriptor. Most application code only needs `Person`.
+`Person` is a `Schema.Codec` with Effect's standard schema operations, including `make`, `makeOption`, `check`, and `annotate`. The protobuf descriptor used to derive it remains private to the generated module.
 
 Construction applies protobuf defaults and validates field constraints. Message values use familiar TypeScript shapes: optional properties, arrays, object records, `bigint` for 64-bit integers, and `{ case, value }` unions for oneofs.
-
-If another tool already generated a protobuf-es descriptor, derive the same schema manually:
-
-```ts
-import * as Protobuf from "effect-protobuf/Protobuf";
-import { PersonSchema } from "./gen/address_book_pb.ts";
-
-const Person = Protobuf.schema(PersonSchema);
-```
 
 ## Encode and decode
 
@@ -74,7 +65,7 @@ The primary APIs return `Effect` values with typed `EncodeError` or `DecodeError
 
 ```ts
 import { Effect } from "effect";
-import * as Protobuf from "effect-protobuf/Protobuf";
+import * as Protobuf from "protobuf-effect/Protobuf";
 import { Person } from "./gen/address_book_pb.ts";
 
 const program = Effect.gen(function* () {
@@ -136,7 +127,7 @@ The pinned official `protobuf-conformance@35.1.0` suite passes all 5,631 binary 
 
 Serialization delegates directly to protobuf-es without converting messages into alternate Effect-specific containers. Bind a schema-specific codec once in a hot path, as shown above, to avoid repeatedly creating the adapter closure.
 
-The benchmark verifies equivalent results before comparing protobuf-es and `effect-protobuf` over the same descriptors and payloads:
+The benchmark verifies equivalent results before comparing protobuf-es and `protobuf-effect` over the same descriptors and payloads:
 
 ```sh
 vp run benchmark
@@ -157,13 +148,23 @@ vp run benchmark
 
 The package uses TypeScript 7's `tsgo`, exact optional property types, Vite+ (`vp pack`), and Changesets.
 
+## Agent Skills
+
+`protobuf-effect` ships versioned Agent Skills for schema generation and codec usage. Install [TanStack Intent](https://tanstack.com/intent/latest) guidance in a consuming project to make these skills discoverable to coding agents:
+
+```sh
+npx @tanstack/intent@latest install
+```
+
+Maintainers validate the packaged skills with `vp run intent:check` as part of the release gate.
+
 ## Manual release
 
 User-visible changes should include `vp run changeset`. To publish a reviewed release manually:
 
 ```sh
 vp run version
-git add . && git commit -m "Release effect-protobuf"
+git add . && git commit -m "Release protobuf-effect"
 npm login
 vp run release
 ```

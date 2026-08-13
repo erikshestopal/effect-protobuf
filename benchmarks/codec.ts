@@ -33,7 +33,7 @@ const main = Effect.gen(function* () {
     optionalFloat: 0.75,
     optionalDouble: -0.125,
     optionalBool: true,
-    optionalString: "effect-protobuf benchmark",
+    optionalString: "protobuf-effect benchmark",
     optionalBytes: new TextEncoder().encode("representative binary payload"),
     optionalNestedMessage: { a: 42 },
     repeatedInt32: integers,
@@ -105,35 +105,35 @@ const main = Effect.gen(function* () {
   group(`binary decode (${binary.length} bytes)`, () => {
     summary(() => {
       bench("protobuf-es", () => do_not_optimize(fromBinary(TestAllTypesProto3Schema, binary))).baseline();
-      bench("effect-protobuf", () => do_not_optimize(decodeDelegatedBinary(binary)));
+      bench("protobuf-effect", () => do_not_optimize(decodeDelegatedBinary(binary)));
     });
   });
 
   group(`binary encode (${binary.length} bytes)`, () => {
     summary(() => {
       bench("protobuf-es", () => do_not_optimize(toBinary(TestAllTypesProto3Schema, protobufValue))).baseline();
-      bench("effect-protobuf", () => do_not_optimize(encodeDelegatedBinary(protobufValue)));
+      bench("protobuf-effect", () => do_not_optimize(encodeDelegatedBinary(protobufValue)));
     });
   });
 
   group(`ProtoJSON decode (${json.length} bytes)`, () => {
     summary(() => {
       bench("protobuf-es", () => do_not_optimize(fromJsonString(TestAllTypesProto3Schema, json))).baseline();
-      bench("effect-protobuf", () => do_not_optimize(decodeDelegatedJson(json)));
+      bench("protobuf-effect", () => do_not_optimize(decodeDelegatedJson(json)));
     });
   });
 
   group(`ProtoJSON encode (${json.length} bytes)`, () => {
     summary(() => {
       bench("protobuf-es", () => do_not_optimize(toJsonString(TestAllTypesProto3Schema, protobufValue))).baseline();
-      bench("effect-protobuf", () => do_not_optimize(encodeDelegatedJson(protobufValue)));
+      bench("protobuf-effect", () => do_not_optimize(encodeDelegatedJson(protobufValue)));
     });
   });
 
   group(`generated Node binary decode (${generatedBinary.length} bytes)`, () => {
     summary(() => {
       bench("protobuf-es", () => do_not_optimize(fromBinary(RepresentativeNodeSchema, generatedBinary))).baseline();
-      bench("effect-protobuf", () => do_not_optimize(decodeGeneratedBinary(generatedBinary)));
+      bench("protobuf-effect", () => do_not_optimize(decodeGeneratedBinary(generatedBinary)));
     });
   });
 
@@ -141,14 +141,14 @@ const main = Effect.gen(function* () {
     summary(() => {
       bench("protobuf-es", () =>
         do_not_optimize(toBinary(RepresentativeNodeSchema, protobufGeneratedValue))).baseline();
-      bench("effect-protobuf", () => do_not_optimize(encodeGeneratedBinary(generatedValue)));
+      bench("protobuf-effect", () => do_not_optimize(encodeGeneratedBinary(generatedValue)));
     });
   });
 
   group(`generated Node ProtoJSON decode (${generatedJson.length} bytes)`, () => {
     summary(() => {
       bench("protobuf-es", () => do_not_optimize(fromJsonString(RepresentativeNodeSchema, generatedJson))).baseline();
-      bench("effect-protobuf", () => do_not_optimize(decodeGeneratedJson(generatedJson)));
+      bench("protobuf-effect", () => do_not_optimize(decodeGeneratedJson(generatedJson)));
     });
   });
 
@@ -156,7 +156,7 @@ const main = Effect.gen(function* () {
     summary(() => {
       bench("protobuf-es", () =>
         do_not_optimize(toJsonString(RepresentativeNodeSchema, protobufGeneratedValue))).baseline();
-      bench("effect-protobuf", () => do_not_optimize(encodeGeneratedJson(generatedValue)));
+      bench("protobuf-effect", () => do_not_optimize(encodeGeneratedJson(generatedValue)));
     });
   });
 

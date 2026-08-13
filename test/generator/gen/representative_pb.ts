@@ -6,7 +6,7 @@ import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobu
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import type { Int32Value } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_descriptor, file_google_protobuf_wrappers } from "@bufbuild/protobuf/wkt";
-import type { Detail, DetailSchema, Status } from "./imported_pb";
+import type { Detail, Status } from "./imported_pb";
 import { file_imported } from "./imported_pb";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -112,7 +112,7 @@ export type Node = Message<"generator.test.Node"> & {
  * Describes the message generator.test.Node.
  * Use `create(NodeSchema)` to create a new message.
  */
-export const NodeSchema: GenMessage<Node> = /*@__PURE__*/
+const NodeSchema: GenMessage<Node> = /*@__PURE__*/
   messageDesc(file_representative, 0);
 
 /**
@@ -129,7 +129,7 @@ export type Node_Detail = Message<"generator.test.Node.Detail"> & {
  * Describes the message generator.test.Node.Detail.
  * Use `create(Node_DetailSchema)` to create a new message.
  */
-export const Node_DetailSchema: GenMessage<Node_Detail> = /*@__PURE__*/
+const Node_DetailSchema: GenMessage<Node_Detail> = /*@__PURE__*/
   messageDesc(file_representative, 0, 0);
 
 /**
@@ -162,21 +162,21 @@ export const NodeService: GenService<{
    */
   get: {
     methodKind: "unary";
-    input: typeof NodeSchema;
-    output: typeof DetailSchema;
+    input: Protobuf.MessageSchema.Descriptor<typeof Node>;
+    output: Protobuf.MessageSchema.Descriptor<typeof Detail>;
   },
   /**
    * @generated from rpc generator.test.NodeService.Watch
    */
   watch: {
     methodKind: "server_streaming";
-    input: typeof NodeSchema;
-    output: typeof NodeSchema;
+    input: Protobuf.MessageSchema.Descriptor<typeof Node>;
+    output: Protobuf.MessageSchema.Descriptor<typeof Node>;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_representative, 0);
 
 
-import * as Protobuf from "effect-protobuf/Protobuf";
+import * as Protobuf from "protobuf-effect/Protobuf";
 export const Node = Protobuf.schema(NodeSchema);
 export const Node_Detail = Protobuf.schema(Node_DetailSchema);

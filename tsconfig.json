@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "paths": {
-      "effect-protobuf": ["./src/index.ts"],
-      "effect-protobuf/*": ["./src/*.ts"]
+      "protobuf-effect": ["./src/index.ts"],
+      "protobuf-effect/*": ["./src/*.ts"]
     },
     "lib": ["ESNext", "DOM"],
     "target": "ESNext",

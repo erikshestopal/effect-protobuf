@@ -37,7 +37,7 @@ export type Person = Message<"example.Person"> & {
  * Describes the message example.Person.
  * Use `create(PersonSchema)` to create a new message.
  */
-export const PersonSchema: GenMessage<Person> /*@__PURE__*/ = messageDesc(file_address_book, 0);
+const PersonSchema: GenMessage<Person> /*@__PURE__*/ = messageDesc(file_address_book, 0);
 
-import * as Protobuf from "effect-protobuf/Protobuf";
+import * as Protobuf from "protobuf-effect/Protobuf";
 export const Person = Protobuf.schema(PersonSchema);

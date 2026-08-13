@@ -1,5 +1,5 @@
 /**
- * effect-protobuf.
+ * protobuf-effect.
  *
  * @since 1.0.0
  */

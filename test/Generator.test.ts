@@ -1,9 +1,10 @@
 import { assert, describe, it } from "@effect/vitest";
 import { spawnSync } from "node:child_process";
 import { Option, Result, Schema } from "effect";
-import * as Protobuf from "effect-protobuf/Protobuf";
-import { EditionMessage, EditionMessageSchema } from "./generator/gen/edition_2023_pb.ts";
-import { Legacy, LegacySchema } from "./generator/gen/legacy_pb.ts";
+import * as Protobuf from "protobuf-effect/Protobuf";
+import { EditionMessage } from "./generator/gen/edition_2023_pb.ts";
+import { Legacy } from "./generator/gen/legacy_pb.ts";
+import * as Representative from "./generator/gen/representative_pb.ts";
 import { Node, Node_Detail, NodeService } from "./generator/gen/representative_pb.ts";
 
 describe("protoc-gen-effect", () => {
@@ -13,6 +14,8 @@ describe("protoc-gen-effect", () => {
   });
 
   it("generates protobuf-es message types with derived Effect Schemas", () => {
+    assert.notProperty(Representative, "NodeSchema");
+    assert.notProperty(Representative, "Node_DetailSchema");
     const value = Node.make({
       id: 42,
       label: "root",
@@ -59,15 +62,16 @@ describe("protoc-gen-effect", () => {
     const legacy = Legacy.make({ id: 7, values: [1, 2] });
     assert.isTrue(Schema.is(Legacy)(legacy));
     assert.deepStrictEqual(Protobuf.decodeBinarySync(Legacy)(Protobuf.encodeBinarySync(Legacy)(legacy)).values, [1, 2]);
-    const legacyState = LegacySchema.field.state;
-    const legacyValues = LegacySchema.field.values;
+    const legacyDescriptor = Protobuf.descriptor(Legacy);
+    const legacyState = legacyDescriptor.field.state;
+    const legacyValues = legacyDescriptor.field.values;
     assert.strictEqual(legacyState.fieldKind, "enum");
     assert.isTrue(legacyState.fieldKind === "enum" && !legacyState.enum.open);
     assert.isTrue(legacyValues.fieldKind === "list" && !legacyValues.packed);
 
     const edition = EditionMessage.make({ name: "edition", values: [1, 2], state: 1 });
     assert.isTrue(Schema.is(EditionMessage)(edition));
-    const editionValues = EditionMessageSchema.field.values;
+    const editionValues = Protobuf.descriptor(EditionMessage).field.values;
     assert.isTrue(editionValues.fieldKind === "list" && editionValues.packed);
 
     assert.strictEqual(NodeService.typeName, "generator.test.NodeService");

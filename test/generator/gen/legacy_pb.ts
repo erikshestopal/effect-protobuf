@@ -41,7 +41,7 @@ export type Legacy = Message<"generator.legacy.Legacy"> & {
  * Describes the message generator.legacy.Legacy.
  * Use `create(LegacySchema)` to create a new message.
  */
-export const LegacySchema: GenMessage<Legacy> = /*@__PURE__*/
+const LegacySchema: GenMessage<Legacy> = /*@__PURE__*/
   messageDesc(file_legacy, 0);
 
 /**
@@ -66,5 +66,5 @@ export const StateSchema: GenEnum<State> = /*@__PURE__*/
   enumDesc(file_legacy, 0);
 
 
-import * as Protobuf from "effect-protobuf/Protobuf";
+import * as Protobuf from "protobuf-effect/Protobuf";
 export const Legacy = Protobuf.schema(LegacySchema);

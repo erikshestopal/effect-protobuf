@@ -26,7 +26,7 @@ export type Detail = Message<"generator.imported.Detail"> & {
  * Describes the message generator.imported.Detail.
  * Use `create(DetailSchema)` to create a new message.
  */
-export const DetailSchema: GenMessage<Detail> = /*@__PURE__*/
+const DetailSchema: GenMessage<Detail> = /*@__PURE__*/
   messageDesc(file_imported, 0);
 
 /**
@@ -51,5 +51,5 @@ export const StatusSchema: GenEnum<Status> = /*@__PURE__*/
   enumDesc(file_imported, 0);
 
 
-import * as Protobuf from "effect-protobuf/Protobuf";
+import * as Protobuf from "protobuf-effect/Protobuf";
 export const Detail = Protobuf.schema(DetailSchema);

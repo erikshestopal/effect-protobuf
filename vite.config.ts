@@ -14,8 +14,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@vitest/runner": "@voidzero-dev/vite-plus-test/plugins/runner",
-      "effect-protobuf/Protobuf": new URL("./src/Protobuf.ts", import.meta.url).pathname,
-      "effect-protobuf": new URL("./src/index.ts", import.meta.url).pathname,
+      "protobuf-effect/Protobuf": new URL("./src/Protobuf.ts", import.meta.url).pathname,
+      "protobuf-effect": new URL("./src/index.ts", import.meta.url).pathname,
     },
   },
   staged: {

@@ -1,7 +1,7 @@
 import { assert, describe, it } from "@effect/vitest";
 import { create, createRegistry, setExtension, toBinary } from "@bufbuild/protobuf";
 import { Effect, Exit, Option, Result, Schema } from "effect";
-import * as Protobuf from "effect-protobuf/Protobuf";
+import * as Protobuf from "protobuf-effect/Protobuf";
 import {
   extension_int32,
   TestAllTypesProto2Schema,

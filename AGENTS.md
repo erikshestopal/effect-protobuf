@@ -1,4 +1,4 @@
-# effect-protobuf
+# protobuf-effect
 
 Single-package Effect TS project using Bun for dependency installation, Vite+ (`vp`), TypeScript 7 RC, tsgo, oxlint, Vitest, and ast-grep.
 

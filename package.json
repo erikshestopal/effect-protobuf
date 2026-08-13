@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/Effect-TS/tsgo/refs/heads/main/schema.json",
-  "name": "effect-protobuf",
+  "name": "protobuf-effect",
   "version": "1.0.0",
   "description": "Effect Schema integration for Protocol Buffers, backed by protobuf-es.",
   "keywords": [
@@ -8,6 +8,7 @@
     "effect-schema",
     "protobuf",
     "protocol-buffers",
+    "tanstack-intent",
     "typescript"
   ],
   "homepage": "https://github.com/erikshestopal/effect-protobuf#readme",
@@ -23,7 +24,9 @@
     "protoc-gen-effect": "./dist/protoc-gen-effect.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "skills",
+    "!skills/_artifacts"
   ],
   "type": "module",
   "sideEffects": [],
@@ -54,10 +57,11 @@
     "example": "tsx examples/src/main.ts",
     "example:generate": "examples/generate.sh",
     "generate:test": "test/generator/generate.sh",
+    "intent:check": "intent validate --check",
     "prepack": "vp exec vp pack",
     "prepare": "vp config && effect-tsgo patch",
     "release": "vp run release:check && changeset publish",
-    "release:check": "vp run check && vp run coverage && vp run conformance && vp run build && publint && attw --pack . && npm pack --dry-run --ignore-scripts",
+    "release:check": "vp run check && vp run intent:check && vp run coverage && vp run conformance && vp run build && publint && attw --pack . && npm pack --dry-run --ignore-scripts",
     "typecheck": "tsgo --noEmit",
     "version": "changeset version"
   },
@@ -75,6 +79,7 @@
     "@effect/platform-node": "4.0.0-rc.108",
     "@effect/tsgo": "0.36.4",
     "@effect/vitest": "4.0.0-rc.108",
+    "@tanstack/intent": "^0.3.6",
     "@typescript/native-preview": "7.0.0-dev.20260707.2",
     "@vitest/coverage-istanbul": "4.1.10",
     "expect-type": "1.4.0",

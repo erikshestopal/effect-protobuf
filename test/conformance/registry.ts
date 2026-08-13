@@ -1,6 +1,6 @@
 import { createRegistry, type DescFile, type DescMessage, type Message } from "@bufbuild/protobuf";
 import { Array as Arr, Effect, String as Str } from "effect";
-import * as Protobuf from "effect-protobuf/Protobuf";
+import * as Protobuf from "protobuf-effect/Protobuf";
 import { file_google_protobuf_test_messages_edition2023 } from "./gen/google/protobuf/test_messages_edition2023_pb.ts";
 import { file_google_protobuf_test_messages_edition_unstable } from "./gen/google/protobuf/test_messages_edition_unstable_pb.ts";
 import { file_google_protobuf_test_messages_proto2_editions } from "./gen/google/protobuf/test_messages_proto2_editions_pb.ts";

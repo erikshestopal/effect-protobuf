@@ -1,11 +1,11 @@
-# effect-protobuf Plan
+# protobuf-effect Plan
 
 ## Product Goal
 
 Build the Effect integration layer for Protocol Buffers without maintaining a second protobuf implementation.
 
 - protobuf-es owns generated TypeScript message shapes, descriptors, reflection, extensions, binary, ProtoJSON, text format, unknown fields, Well-Known Types, proto2, proto3, and Editions semantics.
-- effect-protobuf derives Effect Schemas from protobuf-es message descriptors and supplies typed Effect adapters and errors.
+- protobuf-effect derives Effect Schemas from protobuf-es message descriptors and supplies typed Effect adapters and errors.
 - The official pinned conformance suite must remain completely green: 5,631 binary/ProtoJSON cases and 909 text cases for protobuf 35.1, with no failures or skips.
 - Performance is measured continuously. The thin synchronous path should remain within benchmark noise of calling protobuf-es directly.
 - Rust is out of scope unless profiling later identifies a workload protobuf-es cannot address.
@@ -61,7 +61,7 @@ The protobuf-es message descriptor is attached to the resulting Effect Schema as
 
 ## Codec API
 
-Binary, ProtoJSON, and text remain distinct curried operations in `effect-protobuf/Protobuf`:
+Binary, ProtoJSON, and text remain distinct curried operations in `protobuf-effect/Protobuf`:
 
 ```ts
 Protobuf.decodeBinaryEffect(Person)(bytes);
@@ -88,7 +88,7 @@ const value = decode(bytes);
 
 - `@bufbuild/protoc-gen-es` owns generated message, enum, extension, service, and descriptor code.
 - `@bufbuild/protobuf` is a production dependency and owns protobuf format semantics.
-- effect-protobuf must not fork or copy protobuf-es codec algorithms.
+- protobuf-effect must not fork or copy protobuf-es codec algorithms.
 - Generated messages have no serialization methods; the public Effect adapters remain the integration boundary.
 - RPC transports remain outside this package. Generated service descriptors are transport-neutral.
 

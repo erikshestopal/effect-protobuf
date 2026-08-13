@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import * as Protobuf from "effect-protobuf/Protobuf";
+import * as Protobuf from "protobuf-effect/Protobuf";
 import { Person } from "./gen/address_book_pb.ts";
 
 const program = Effect.gen(function* () {
