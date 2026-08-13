@@ -1,5 +1,11 @@
 # protobuf-effect
 
+## 1.0.1
+
+### Patch Changes
+
+- Run the published `protoc-gen-effect` executable with Node without requiring the development-only `tsx` loader.
+
 ## 1.0.0
 
 ### Major Changes

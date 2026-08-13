@@ -1,4 +1,4 @@
-#!/usr/bin/env -S node --import=tsx
+#!/usr/bin/env node
 import { createFileRegistry, create, type DescMessage } from "@bufbuild/protobuf";
 import { FileDescriptorSetSchema } from "@bufbuild/protobuf/wkt";
 import type { Plugin } from "@bufbuild/protoplugin";
