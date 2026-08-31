@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/Effect-TS/tsgo/refs/heads/main/schema.json",
   "name": "protobuf-effect",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Effect Schema integration for Protocol Buffers, backed by protobuf-es.",
   "keywords": [
     "effect",

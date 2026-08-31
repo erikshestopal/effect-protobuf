@@ -1,5 +1,11 @@
 # protobuf-effect
 
+## 1.0.2
+
+### Patch Changes
+
+- [`5bf6e2e`](https://github.com/erikshestopal/effect-protobuf/commit/5bf6e2ee983413252a50b8c006ed0d2de99baad1) Thanks [@erikshestopal](https://github.com/erikshestopal)! - Use Effect as a peer dependency so applications can supply newer compatible Effect versions.
+
 ## 1.0.1
 
 ### Patch Changes
