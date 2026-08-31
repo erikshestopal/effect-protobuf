@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+readonly protobuf_version=35.1
+readonly bazelisk_version=1.29.0
+readonly local_bin="$HOME/.local/bin"
+readonly local_share="$HOME/.local/share"
+readonly root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+readonly runner_home="$local_share/protobuf-conformance-$protobuf_version"
+readonly runner="$runner_home/conformance_test_runner"
+readonly installed_runner="$root/node_modules/protobuf-conformance/bin/conformance_test_runner-linux-x64"
+
+if [[ "$(uname -s)-$(uname -m)" != "Linux-x86_64" ]]; then
+  echo "Building the conformance runner is only supported in Linux x86_64 orbs." >&2
+  exit 1
+fi
+
+if [[ ! -x "$runner" ]]; then
+  if ! dpkg -s build-essential ca-certificates curl openjdk-17-jre-headless >/dev/null 2>&1; then
+    sudo apt-get update -qq
+    sudo apt-get install -y -qq build-essential ca-certificates curl openjdk-17-jre-headless
+  fi
+
+  mkdir -p "$local_bin" "$local_share"
+  bazelisk="$local_share/bazelisk-v$bazelisk_version"
+  if [[ ! -x "$bazelisk" ]]; then
+    curl -fsSL \
+      "https://github.com/bazelbuild/bazelisk/releases/download/v$bazelisk_version/bazelisk-linux-amd64" \
+      -o "$bazelisk"
+    chmod +x "$bazelisk"
+  fi
+
+  source_home="$HOME/.cache/effect-protobuf/protobuf-$protobuf_version"
+  archive=$(mktemp)
+  curl -fsSL \
+    "https://github.com/protocolbuffers/protobuf/releases/download/v$protobuf_version/protobuf-$protobuf_version.tar.gz" \
+    -o "$archive"
+  rm -rf "$source_home"
+  mkdir -p "$source_home"
+  tar -xzf "$archive" --strip-components=1 -C "$source_home"
+  rm -f "$archive"
+  (
+    cd "$source_home"
+    "$bazelisk" --batch --output_user_root="$HOME/.cache/bazel-effect-protobuf" \
+      build --jobs="$(nproc)" //conformance:conformance_test_runner \
+      --noshow_progress
+  )
+  mkdir -p "$runner_home"
+  cp "$source_home/bazel-bin/conformance/conformance_test_runner" "$runner"
+fi
+
+cp "$runner" "$installed_runner"
+chmod +x "$installed_runner"

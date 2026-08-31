@@ -5,15 +5,14 @@ readonly node_version=26.4.0
 readonly bun_version=1.3.14
 readonly buf_version=1.72.0
 readonly protobuf_version=35.1
-readonly bazelisk_version=1.29.0
 readonly local_bin="$HOME/.local/bin"
 readonly local_share="$HOME/.local/share"
 
 mkdir -p "$local_bin" "$local_share"
 
-if ! dpkg -s build-essential ca-certificates curl openjdk-17-jre-headless unzip xz-utils >/dev/null 2>&1; then
+if ! dpkg -s ca-certificates curl unzip xz-utils >/dev/null 2>&1; then
   sudo apt-get update -qq
-  sudo apt-get install -y -qq build-essential ca-certificates curl openjdk-17-jre-headless unzip xz-utils
+  sudo apt-get install -y -qq ca-certificates curl unzip xz-utils
 fi
 
 node_home="$local_share/node-v$node_version"
@@ -61,46 +60,8 @@ if [[ ! -x "$protoc_home/bin/protoc" ]]; then
 fi
 ln -sfn "$protoc_home/bin/protoc" "$local_bin/protoc"
 
-bazelisk="$local_share/bazelisk-v$bazelisk_version"
-if [[ ! -x "$bazelisk" ]]; then
-  curl -fsSL \
-    "https://github.com/bazelbuild/bazelisk/releases/download/v$bazelisk_version/bazelisk-linux-amd64" \
-    -o "$bazelisk"
-  chmod +x "$bazelisk"
-fi
-ln -sfn "$bazelisk" "$local_bin/bazel"
-ln -sfn "$bazelisk" "$local_bin/bazelisk"
-
 export PATH="$local_bin:$PATH"
 bun install --frozen-lockfile
-
-runner_home="$local_share/protobuf-conformance-$protobuf_version"
-runner="$runner_home/conformance_test_runner"
-if [[ ! -x "$runner" ]]; then
-  source_home="$HOME/.cache/effect-protobuf/protobuf-$protobuf_version"
-  archive=$(mktemp)
-  curl -fsSL \
-    "https://github.com/protocolbuffers/protobuf/releases/download/v$protobuf_version/protobuf-$protobuf_version.tar.gz" \
-    -o "$archive"
-  rm -rf "$source_home"
-  mkdir -p "$source_home"
-  tar -xzf "$archive" --strip-components=1 -C "$source_home"
-  rm -f "$archive"
-  (
-    cd "$source_home"
-    bazelisk --batch --output_user_root="$HOME/.cache/bazel-effect-protobuf" \
-      build --jobs="$(nproc)" //conformance:conformance_test_runner \
-      --noshow_progress
-  )
-  mkdir -p "$runner_home"
-  cp "$source_home/bazel-bin/conformance/conformance_test_runner" "$runner"
-fi
-
-installed_runner="node_modules/protobuf-conformance/bin/conformance_test_runner-linux-x64"
-if [[ ! -x "$installed_runner" ]] || ! cmp -s "$runner" "$installed_runner"; then
-  cp "$runner" "$installed_runner"
-  chmod +x "$installed_runner"
-fi
 
 node --version
 bun --version

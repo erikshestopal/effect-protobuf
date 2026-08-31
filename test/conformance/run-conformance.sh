@@ -3,6 +3,10 @@ set -eu
 
 root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 
+if ! "$root/node_modules/.bin/conformance_test_runner" --version >/dev/null 2>&1; then
+  "$root/.agents/build-conformance-runner"
+fi
+
 if [ "${1-}" = "--test" ]; then
   exec "$root/node_modules/.bin/conformance_test_runner" \
     --maximum_edition MAX \
