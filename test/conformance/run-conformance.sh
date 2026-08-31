@@ -3,7 +3,7 @@ set -eu
 
 root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 
-if ! "$root/node_modules/.bin/conformance_test_runner" --version >/dev/null 2>&1; then
+if ! "$root/node_modules/.bin/conformance_test_runner" --help 2>&1 | grep -q "Usage: conformance-test-runner"; then
   "$root/.agents/build-conformance-runner"
 fi
 

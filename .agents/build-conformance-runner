@@ -6,26 +6,76 @@ readonly bazelisk_version=1.29.0
 readonly local_bin="$HOME/.local/bin"
 readonly local_share="$HOME/.local/share"
 readonly root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-readonly runner_home="$local_share/protobuf-conformance-$protobuf_version"
-readonly runner="$runner_home/conformance_test_runner"
-readonly installed_runner="$root/node_modules/protobuf-conformance/bin/conformance_test_runner-linux-x64"
 
-if [[ "$(uname -s)-$(uname -m)" != "Linux-x86_64" ]]; then
-  echo "Building the conformance runner is only supported in Linux x86_64 orbs." >&2
-  exit 1
+case "$(uname -s)-$(uname -m)" in
+  Linux-x86_64)
+    platform=linux
+    node_arch=x64
+    bazelisk_asset=bazelisk-linux-amd64
+    jobs=$(nproc)
+    ;;
+  Linux-aarch64 | Linux-arm64)
+    platform=linux
+    node_arch=arm64
+    bazelisk_asset=bazelisk-linux-arm64
+    jobs=$(nproc)
+    ;;
+  Darwin-x86_64)
+    platform=darwin
+    node_arch=x64
+    bazelisk_asset=bazelisk-darwin-amd64
+    jobs=$(sysctl -n hw.ncpu)
+    ;;
+  Darwin-arm64)
+    platform=darwin
+    node_arch=arm64
+    bazelisk_asset=bazelisk-darwin-arm64
+    jobs=$(sysctl -n hw.ncpu)
+    ;;
+  *)
+    echo "Building the conformance runner is not supported on $(uname -s) $(uname -m)." >&2
+    exit 1
+    ;;
+esac
+
+readonly platform node_arch bazelisk_asset jobs
+readonly runner_home="$local_share/protobuf-conformance-$protobuf_version-$platform-$node_arch"
+readonly runner="$runner_home/conformance_test_runner"
+readonly installed_runner="$root/node_modules/protobuf-conformance/bin/conformance_test_runner-$platform-$node_arch"
+
+legacy_runner="$local_share/protobuf-conformance-$protobuf_version/conformance_test_runner"
+if [[ "$platform-$node_arch" == linux-x64 && ! -x "$runner" && -x "$legacy_runner" ]]; then
+  mkdir -p "$runner_home"
+  cp "$legacy_runner" "$runner"
 fi
 
 if [[ ! -x "$runner" ]]; then
-  if ! dpkg -s build-essential ca-certificates curl openjdk-17-jre-headless >/dev/null 2>&1; then
-    sudo apt-get update -qq
-    sudo apt-get install -y -qq build-essential ca-certificates curl openjdk-17-jre-headless
+  if [[ "$platform" == linux ]]; then
+    if ! dpkg -s build-essential ca-certificates curl openjdk-17-jre-headless >/dev/null 2>&1; then
+      sudo apt-get update -qq
+      sudo apt-get install -y -qq build-essential ca-certificates curl openjdk-17-jre-headless
+    fi
+  else
+    if ! xcrun --find clang >/dev/null 2>&1; then
+      echo "Install the Xcode command line tools with: xcode-select --install" >&2
+      exit 1
+    fi
+    if ! java -version >/dev/null 2>&1; then
+      if ! command -v brew >/dev/null 2>&1; then
+        echo "Install Java 17 before building the conformance runner." >&2
+        exit 1
+      fi
+      brew install openjdk@17
+      export JAVA_HOME="$(brew --prefix openjdk@17)/libexec/openjdk.jdk/Contents/Home"
+      export PATH="$JAVA_HOME/bin:$PATH"
+    fi
   fi
 
   mkdir -p "$local_bin" "$local_share"
-  bazelisk="$local_share/bazelisk-v$bazelisk_version"
+  bazelisk="$local_share/bazelisk-v$bazelisk_version-$platform-$node_arch"
   if [[ ! -x "$bazelisk" ]]; then
     curl -fsSL \
-      "https://github.com/bazelbuild/bazelisk/releases/download/v$bazelisk_version/bazelisk-linux-amd64" \
+      "https://github.com/bazelbuild/bazelisk/releases/download/v$bazelisk_version/$bazelisk_asset" \
       -o "$bazelisk"
     chmod +x "$bazelisk"
   fi
@@ -42,7 +92,7 @@ if [[ ! -x "$runner" ]]; then
   (
     cd "$source_home"
     "$bazelisk" --batch --output_user_root="$HOME/.cache/bazel-effect-protobuf" \
-      build --jobs="$(nproc)" //conformance:conformance_test_runner \
+      build --jobs="$jobs" //conformance:conformance_test_runner \
       --noshow_progress
   )
   mkdir -p "$runner_home"
