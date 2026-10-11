@@ -1,5 +1,11 @@
 # protobuf-effect
 
+## 1.1.0
+
+### Minor Changes
+
+- [`cf4c81f`](https://github.com/erikshestopal/effect-protobuf/commit/cf4c81f) Thanks [@erikshestopal](https://github.com/erikshestopal)! - Move `@bufbuild/protobuf` from `dependencies` to `peerDependencies` (`^2.14.0`) so consumers resolve a single copy and generated message types stay assignable. Consumers must now install `@bufbuild/protobuf` themselves. `@bufbuild/protoc-gen-es` and `@bufbuild/protoplugin` remain dependencies for the `protoc-gen-effect` plugin.
+
 ## 1.0.2
 
 ### Patch Changes
