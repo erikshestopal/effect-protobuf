@@ -66,13 +66,13 @@
     "version": "changeset version"
   },
   "dependencies": {
-    "@bufbuild/protobuf": "2.14.0",
     "@bufbuild/protoc-gen-es": "2.14.0",
     "@bufbuild/protoplugin": "2.14.0"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
     "@ast-grep/cli": "0.45.1",
+    "@bufbuild/protobuf": "2.14.0",
     "@changesets/changelog-github": "^1.0.0",
     "@changesets/cli": "^3.0.0",
     "@effect/platform-node": "4.0.0-rc.112",
@@ -93,6 +93,7 @@
     "vitest": "4.1.10"
   },
   "peerDependencies": {
+    "@bufbuild/protobuf": "^2.14.0",
     "effect": ">=4.0.0-rc.108"
   },
   "overrides": {

@@ -87,7 +87,7 @@ const value = decode(bytes);
 ```
 
 - `@bufbuild/protoc-gen-es` owns generated message, enum, extension, service, and descriptor code.
-- `@bufbuild/protobuf` is a production dependency and owns protobuf format semantics.
+- `@bufbuild/protobuf` is a peer dependency (`^2.14.0`, also a devDependency for this repo) so consumers keep a single copy, and it owns protobuf format semantics.
 - protobuf-effect must not fork or copy protobuf-es codec algorithms.
 - Generated messages have no serialization methods; the public Effect adapters remain the integration boundary.
 - RPC transports remain outside this package. Generated service descriptors are transport-neutral.
